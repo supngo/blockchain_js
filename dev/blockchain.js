@@ -1,6 +1,6 @@
 const sha256 = require('sha256');
 const currentNodeUrl = process.argv[3];
-
+const { v4: uuidv4 } = require('uuid');
 
 function Blockchain() {
   this.chain = [];
@@ -33,10 +33,14 @@ Blockchain.prototype.createNewTransaction = function(amount, sender, recipient) 
   const newTransaction = {
     amount: amount,
     sender: sender,
-    recipient: recipient
+    recipient: recipient,
+    transactionId: uuidv4().split('-').join('')
   };
+  return newTransaction;
+}
 
-  this.pendingTransactions.push(newTransaction);
+Blockchain.prototype.addTransactionToPendingTransactions = function(transactionObj) {
+  this.pendingTransactions.push(transactionObj);
   return this.getLastBlock()['index'] + 1;
 }
 
@@ -54,6 +58,35 @@ Blockchain.prototype.proofOfWork = function(preBlockHash, currentBlockData) {
     hash = this.hashBlock(preBlockHash, currentBlockData, nonce);
   }
   return nonce;
+}
+
+Blockchain.prototype.chainIsValid = function(blockchain) {
+  let validChain = true;
+
+  // validate if hash and transactions are valid by comparing with prev block and rehashing trans
+  for (var i = 1; i < blockchain.length; i++) {
+    const currentBlock = blockchain[i];
+    const prevBlock = blockchain[i-1];
+    const blockHash = this.hashBlock(
+      prevBlock['hash'], 
+      { transactions: currentBlock['transactions'], index: currentBlock['index']},
+      currentBlock['nonce'])
+    if (blockHash.substring(0,4) !== '0000' || currentBlock['previousBlockHash'] !== prevBlock['hash']) {
+      validChain = false;
+      break;
+    }
+  }
+  // validate if genesis Block is valid
+  const genesisBlock = blockchain[0];
+  const correctNonce = genesisBlock['nonce'] === 100;
+  const correctPrevBlockHash = genesisBlock['previousBlockHash'] === '0';
+  const correctHash = genesisBlock['hash'] === '0';
+  const correctTransaction = genesisBlock['transactions'].length === 0;
+
+  if(!correctNonce || !correctPrevBlockHash || !correctHash || !correctTransaction) {
+    validChain = false;
+  }
+  return validChain;
 }
 
 module.exports = Blockchain;
