@@ -190,6 +190,48 @@ app.get('/consensus', function (req, res) {
     }
   })
 });
+
+app.get('/block/:blockHash', function(req, res) {
+  const blockHash = req.params.blockHash;
+  const correctBlock = bitcoin.getBlock(blockHash);
+  if (!correctBlock) {
+    res.json({ 
+      note: 'This block is invalid',
+    });
+  } else {
+    res.json({ 
+      block: correctBlock
+    });
+  }
+});
+
+app.get('/transaction/:transactionId', function(req, res) {
+  const transactionId = req.params.transactionId;
+  const correctTransaction = bitcoin.getTransaction(transactionId);
+  if (!correctTransaction.transaction || !correctTransaction.block) {
+    res.json({ 
+      note: 'This transaction is invalid',
+    });
+  } else {
+    res.json(correctTransaction);
+  }
+});
+
+app.get('/address/:address', function(req, res) {
+  const address = req.params.address;
+  const correctAddress = bitcoin.getAddressData(address);
+  if (correctAddress.addressTransactions.length < 1) {
+    res.json({ 
+      note: 'This address is invalid',
+    });
+  } else {
+    res.json(correctAddress);
+  }
+});
+
+app.get('/block-explorer', function(req, res) {
+  res.sendFile('./block-explorer/index.html', { root: __dirname });
+});
  
 app.listen(port, function() {
   console.log(`Listening to port ${port}...`);
